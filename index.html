@@ -3,37 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>おしゃれルーレット</title>
+    <title>駅数ルーレット</title>
     <style>
-        /* CSS: モダンなデザイン */
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
-        canvas { margin: 20px 0; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .inputs { display: grid; gap: 10px; margin-bottom: 20px; }
-        input { padding: 8px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
-        button { background: #ff6b6b; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 18px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #ff5252; transform: scale(1.05); }
+        :root { --main-blue: #0078d4; --bg-gray: #f4f4f4; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg-gray); display: flex; flex-direction: column; align-items: center; padding: 20px; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; }
+        h1 { font-size: 1.2rem; margin-bottom: 20px; color: var(--main-blue); border-bottom: 2px solid var(--main-blue); display: inline-block; }
+        
+        .selector { margin-bottom: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .btn-count { border: 2px solid #ddd; background: white; padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .btn-count.active { background: var(--main-blue); color: white; border-color: var(--main-blue); }
+
+        canvas { margin: 10px 0; border: 8px solid #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .controls { margin-top: 15px; }
+        .btn-spin { background: #ff4757; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #d63031; transition: 0.1s; }
+        .btn-spin:active { transform: translateY(3px); box-shadow: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Roulette</h2>
-    <div class="inputs" id="inputContainer">
-        <!-- 6つの入力欄 -->
-        <input type="text" value="お肉" class="item">
-        <input type="text" value="お魚" class="item">
-        <input type="text" value="カレー" class="item">
-        <input type="text" value="パスタ" class="item">
-        <input type="text" value="ラーメン" class="item">
-        <input type="text" value="お寿司" class="item">
+<div class="card">
+    <h1>何駅進む？</h1>
+    <div class="selector" id="selector">
+        <button class="btn-count" onclick="updateCount(1)">1駅</button>
+        <button class="btn-count" onclick="updateCount(2)">2駅</button>
+        <button class="btn-count" onclick="updateCount(3)">3駅</button>
+        <button class="btn-count" onclick="updateCount(4)">4駅</button>
+        <button class="btn-count" onclick="updateCount(5)">5駅</button>
+        <button class="btn-count active" onclick="updateCount(6)">6駅</button>
     </div>
     <canvas id="canvas" width="300" height="300"></canvas>
-    <br>
-    <button onclick="spin()">スタート！</button>
+    <div class="controls">
+        <button class="btn-spin" onclick="spin()">START</button>
+    </div>
 </div>
 
 <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e67e22', '#e74c3c', '#9b59b6'];
+    let count = 6;
+    let currentRotation = 0;
+    let isSpinning = false;
+
+    function updateCount(n) {
+        if (isSpinning) return;
+        count = n;
+        document.querySelectorAll('.btn-count').forEach((btn, i) => {
+            btn.classList.toggle('active', i === n - 1);
+        });
+        draw();
+    }
+
+    function draw() {
+        const arc = (Math.PI * 2) / count;
+        ctx.clearRect(0, 0, 300, 300);
+        
+        for (let i = 0; i < count; i++) {
+            const angle = currentRotation + i * arc;
+            ctx.beginPath();
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.moveTo(150, 150);
+            ctx.arc(150, 150, 145, angle, angle + arc);
+            ctx.fill();
+            ctx.stroke();
+            ctx.strokeStyle = "#fff";
+
+            ctx.save();
+            ctx.translate(150, 150);
+            ctx.rotate(angle + arc / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 20px sans-serif";
+            ctx.fillText(`${i + 1}駅`, 130, 8);
+            ctx.restore();
+        }
+        // 矢印（針）を描画
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.moveTo(280, 150);
+        ctx.lineTo(300, 140);
+        ctx.lineTo(300, 160);
+        ctx.fill();
+    }
+
+    function spin() {
+        if (isSpinning) return;
+        isSpinning = true;
+        const spinAngle = Math.random() * 20 + 30; // 回転の勢い
+        let velocity = spinAngle;
+        
+        function animate() {
+            velocity *= 0.98; // 摩擦で減速
+            currentRotation += velocity * 0.1;
+            draw();
+
+            if (velocity > 0.1) {
+                requestAnimationFrame(animate);
+            } else {
+                isSpinning = false;
+            }
+        }
+        animate();
+    }
+
+    draw();
+</script>
+</body>
+</html>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const colors = ['#FFADAD', '#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#A0C4FF'];
