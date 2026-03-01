@@ -101,8 +101,8 @@ const rotations = [
 function rollDice() {
   const random = Math.floor(Math.random() * 6);
 
-  const extraSpinX = 360 * (2 + Math.floor(Math.random()*2));
-  const extraSpinY = 360 * (2 + Math.floor(Math.random()*2));
+  const extraSpinX = 360 * (12 + Math.floor(Math.random()*360));
+  const extraSpinY = 360 * (12 + Math.floor(Math.random()*360));
 
   cube.style.transform =
     `rotateX(${extraSpinX}deg) rotateY(${extraSpinY}deg) ` +
