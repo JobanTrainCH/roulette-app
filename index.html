@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おしゃれルーレット</title>
+    <style>
+        /* CSS: モダンなデザイン */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
+        canvas { margin: 20px 0; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .inputs { display: grid; gap: 10px; margin-bottom: 20px; }
+        input { padding: 8px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
+        button { background: #ff6b6b; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 18px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #ff5252; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Roulette</h2>
+    <div class="inputs" id="inputContainer">
+        <!-- 6つの入力欄 -->
+        <input type="text" value="お肉" class="item">
+        <input type="text" value="お魚" class="item">
+        <input type="text" value="カレー" class="item">
+        <input type="text" value="パスタ" class="item">
+        <input type="text" value="ラーメン" class="item">
+        <input type="text" value="お寿司" class="item">
+    </div>
+    <canvas id="canvas" width="300" height="300"></canvas>
+    <br>
+    <button onclick="spin()">スタート！</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const colors = ['#FFADAD', '#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#A0C4FF'];
+    let currentRotation = 0;
+
+    function draw() {
+        const items = Array.from(document.querySelectorAll('.item')).map(i => i.value).filter(v => v !== "");
+        const num = items.length;
+        const arc = (Math.PI * 2) / num;
+
+        ctx.clearRect(0, 0, 300, 300);
+        items.forEach((text, i) => {
+            const angle = currentRotation + i * arc;
+            ctx.beginPath();
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.moveTo(150, 150);
+            ctx.arc(150, 150, 140, angle, angle + arc);
+            ctx.fill();
+            
+            // テキスト描画
+            ctx.save();
+            ctx.translate(150, 150);
+            ctx.rotate(angle + arc / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#333";
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillText(text, 130, 10);
+            ctx.restore();
+        });
+    }
+
+    function spin() {
+        const extraSpin = Math.random() * 2000 + 2000; // 3〜5回転くらい
+        const start = performance.now();
+        const duration = 3000; // 3秒間
+
+        function animate(time) {
+            const progress = Math.min((time - start) / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3); // 滑らかに止まる
+            currentRotation += (extraSpin / 100) * (1 - easeOut);
+            draw();
+            if (progress < 1) requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    }
+
+    // 入力変更時に再描画
+    document.getElementById('inputContainer').addEventListener('input', draw);
+    draw();
+</script>
+</body>
+</html>
