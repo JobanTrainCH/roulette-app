@@ -1,40 +1,209 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>駅名ルーレット</title>
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <meta name="description" content="駅名ルーレット" />
-   <link rel="manifest" href="manifest.json">
-   <meta name="theme-color" content="#f0f0f0">
-   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-   <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('Service Worker registered'))
-        .catch(err => console.error('Service Worker registration failed:', err));
-    });
-  }
-</script>
- 
-  <style>
-     html, body {
+<meta charset="UTF-8">
+<title>駅ルーレット</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
   margin: 0;
   padding: 0;
   height: 100vh;
   overflow: hidden;
+  background: #f0f0f0;
+  font-family: sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
- 
-    .body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f0f0f0; margin: 0; font-family: sans-serif; }
-    .roulette-container { position: relative; width: 600px; height: 600px;min-width:370px;min-height:370px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); border-radius: 50%; overflow: hidden;}
-    .svg { width: 100%; height: 100%; transform: rotate(0deg); transition: transform 0.1s linear; border-radius: 50%; }
-    .center-button { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120px; height: 120px; border-radius: 50%; background-color: white; border: 2px solid #ccc; font-size: 14px; z-index: 10; cursor: pointer; }
-    .pointer { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid red; z-index: 20; }
-    .result-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 30; }
-     .result-board {
-        width:96%;
-        max-width: 640px;
+
+.roulette-container {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  min-width: 370px;
+  min-height: 370px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+}
+
+.center-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.pointer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 30px solid red;
+  z-index: 20;
+}
+
+.result-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-board {
+  background: white;
+  padding: 40px;
+  font-size: 40px;
+  font-weight: bold;
+  border-radius: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="roulette-container">
+  <div class="pointer"></div>
+  <svg id="roulette-svg" viewBox="0 0 400 400"></svg>
+  <button class="center-button" onclick="toggleRotation()" id="btn">スタート</button>
+</div>
+
+<div class="result-overlay" id="result" onclick="hideResult()">
+  <div class="result-board" id="resultText"></div>
+</div>
+
+<script>
+let segments = [
+{ label: '1駅進む', color: '#FFB6C1' },
+{ label: '1駅進む', color: '#FFDAB9' },
+{ label: '2駅進む', color: '#B0E0E6' },
+{ label: '3駅進む', color: '#E6E6FA' },
+{ label: '4駅進む', color: '#C1E1C1' },
+{ label: '5駅進む', color: '#FFFACD' },
+{ label: '6駅進む', color: '#FADADD' },
+{ label: '1本見逃す', color: '#D1EEEE' }
+];
+
+const svg = document.getElementById('roulette-svg');
+const centerX = 200;
+const centerY = 200;
+const radius = 190;
+
+let angle = 0;
+let speed = 0;
+let spinning = false;
+let animation;
+
+function drawWheel() {
+  svg.innerHTML = '';
+  const anglePer = 360 / segments.length;
+
+  segments.forEach((seg, i) => {
+    const start = anglePer * i;
+    const end = start + anglePer;
+    const largeArc = anglePer > 180 ? 1 : 0;
+
+    const x1 = centerX + radius * Math.cos(Math.PI * start / 180);
+    const y1 = centerY + radius * Math.sin(Math.PI * start / 180);
+    const x2 = centerX + radius * Math.cos(Math.PI * end / 180);
+    const y2 = centerY + radius * Math.sin(Math.PI * end / 180);
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',
+      `M ${centerX},${centerY} L ${x1},${y1}
+       A ${radius},${radius} 0 ${largeArc},1 ${x2},${y2} Z`);
+    path.setAttribute('fill', seg.color);
+    svg.appendChild(path);
+
+    const textAngle = (start + end) / 2;
+    const tx = centerX + radius*0.6 * Math.cos(Math.PI*textAngle/180);
+    const ty = centerY + radius*0.6 * Math.sin(Math.PI*textAngle/180);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', tx);
+    text.setAttribute('y', ty);
+    text.setAttribute('text-anchor','middle');
+    text.setAttribute('dominant-baseline','middle');
+    text.setAttribute('font-weight','bold');
+    text.setAttribute('transform',`rotate(${textAngle},${tx},${ty})`);
+    text.textContent = seg.label;
+    svg.appendChild(text);
+  });
+}
+
+function rotate() {
+  angle += speed;
+  svg.style.transform = `rotate(${angle}deg)`;
+
+  if (!spinning && speed > 0.1) {
+    speed *= 0.97;
+  } else if (!spinning) {
+    cancelAnimationFrame(animation);
+    showResult();
+    return;
+  }
+
+  animation = requestAnimationFrame(rotate);
+}
+
+function toggleRotation() {
+  const btn = document.getElementById('btn');
+
+  if (!spinning) {
+    spinning = true;
+    speed = 10;
+    btn.textContent = 'ストップ';
+    rotate();
+  } else {
+    spinning = false;
+    btn.textContent = '停止中';
+  }
+}
+
+function showResult() {
+  const per = 360 / segments.length;
+  const normalized = (360 - (angle % 360) - 90 + 360) % 360;
+  const index = Math.floor(normalized / per);
+  const selected = segments[index];
+
+  document.getElementById('resultText').textContent = selected.label;
+  document.getElementById('result').style.display = 'flex';
+  document.getElementById('btn').textContent = 'スタート';
+}
+
+function hideResult() {
+  document.getElementById('result').style.display = 'none';
+}
+
+drawWheel();
+</script>
+
+</body>
+</html>        max-width: 640px;
   border: 5px solid #222;
   border-radius: 20px;
   padding: 40px 50px;
