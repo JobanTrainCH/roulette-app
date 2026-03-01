@@ -1,230 +1,568 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>駅数ルーレット</title>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { background: white; padding: 40px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; }
-        h1 { color: #333; margin-bottom: 30px; font-size: 1.5rem; letter-spacing: 1px; }
+  <meta charset="UTF-8">
+  <title>駅名ルーレット</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta name="description" content="駅名ルーレット" />
+   <link rel="manifest" href="manifest.json">
+   <meta name="theme-color" content="#f0f0f0">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+   <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
+</script>
+ 
+  <style>
+     html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+ 
+    .body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f0f0f0; margin: 0; font-family: sans-serif; }
+    .roulette-container { position: relative; width: 600px; height: 600px;min-width:370px;min-height:370px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); border-radius: 50%; overflow: hidden;}
+    .svg { width: 100%; height: 100%; transform: rotate(0deg); transition: transform 0.1s linear; border-radius: 50%; }
+    .center-button { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120px; height: 120px; border-radius: 50%; background-color: white; border: 2px solid #ccc; font-size: 14px; z-index: 10; cursor: pointer; }
+    .pointer { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid red; z-index: 20; }
+    .result-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 30; }
+     .result-board {
+        width:96%;
+        max-width: 640px;
+  border: 5px solid #222;
+  border-radius: 20px;
+  padding: 40px 50px;
+  font-size: 200%;
+  font-weight: bold;
+  color: #222;
+  text-align: center;
+  text-shadow: 1px 1px 2px #fff;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.6),
+    inset 0 0 10px rgba(255, 255, 255, 0.5);
+}
+    
+  #input-area { max-height: 300px; overflow-y: auto; }
+  #history-area { max-height: 200px; overflow-y: auto; }
+    .result-overlay.show .result-board { transform: translateY(0); opacity: 1; }
+    .settings-button { position: fixed; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: #ddd; border: none; font-size: 20px; z-index: 40; cursor: pointer; }
+    .settings-panel { position: fixed; top: 0; right: 0; width: 330px; height: 100vh; background: #fff; box-shadow: -4px 0 10px rgba(0,0,0,0.2); transform: translateX(100%); transition: transform 0.3s ease; padding: 20px; z-index: 35; overflow-y: auto; }
+    .settings-panel.show { transform: translateX(0); }
+    .input-field { display: flex; align-items: center; margin-bottom: 8px; }
+    .input-field input { width: 220px; margin-right: 8px;font-size:16px; }
+    .color-box { width: 20px; height: 20px; border: 1px solid #ccc; margin-right: 8px; }
+    .input-controls { margin-top: 10px; }
+    .history-log { font-size: 14px; margin-top: 10px; white-space: pre-wrap; }
+     @media only screen and (max-width: 600px) {
         
-        /* ルーレット外枠 */
-        .roulette-wrapper { position: relative; margin-bottom: 30px; }
-        canvas { border-radius: 50%; border: 8px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        
-        /* 矢印（針） */
-        .arrow { position: absolute; top: 50%; right: -20px; transform: translateY(-50%); width: 0; height: 0; border-top: 15px solid transparent; border-bottom: 15px solid transparent; border-right: 30px solid #ff4757; z-index: 10; }
-
-        .btn-spin { background: #0078d4; color: white; border: none; padding: 18px 60px; border-radius: 50px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 0 #005a9e; }
-        .btn-spin:hover { transform: scale(1.05); }
-        .btn-spin:active { transform: translateY(3px); box-shadow: none; }
-    </style>
+.roulette-container {  width: 370px; height: 370px;}
+        .center-button{width: 80px; height: 80px;}
+     }
+  </style>
 </head>
-<body>
-
-<div class="container">
-    <h1>駅数ルーレット</h1>
-    <div class="roulette-wrapper">
-        <div class="arrow"></div>
-        <canvas id="canvas" width="320" height="320"></canvas>
+<body class="body">
+  
+   <button class="settings-button" onclick="toggleSettings()" aria-label="設定">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path fill="currentColor" d="M10 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+  </svg>
+</button>
+ 
+ 
+   
+  <div id="settings-panel" class="settings-panel box">
+  <h3 class="title is-4">設定</h3>
+  <div class="mb-4">
+    <button class="button is-info is-small mb-2" onclick="openInputPanel()">📝 編集</button>
+     
+ 
+    <div id="input-area"></div>
+    <div class="input-controls buttons are-small mt-2" style="display: none;">
+      <button class="button is-success" onclick="addInputField(); openInputPanel(true)">＋</button>
+      <button class="button is-danger" onclick="removeInputField(); openInputPanel(true)">−</button>
+      <button class="button is-primary" onclick="saveInput()">保存</button>
     </div>
-    <button class="btn-spin" onclick="spin()">スタート</button>
+     
+  </div>
+  <div class="mb-4">
+    <button class="button is-info is-small mb-2" onclick="showHistory()">📋 履歴</button>
+    <div id="history-area" class="history-log box" style="display: none;"></div>
+  </div>
+      <div class="mb-4">
+    <label class="checkbox">
+      <input type="checkbox" id="bgm-toggle" onchange="toggleBGM()"> BGM ON/OFF
+    </label>
+    <br>
+    <label class="checkbox">
+      <input type="checkbox" id="se-toggle" onchange="toggleSE()"> SE ON/OFF
+    </label>
+         <br>
+         <label class="checkbox">
+  <input type="checkbox" id="consume-once-toggle"> 使い切りモード
+</label>
+ 
+  </div>
+     
+     
+     <div >     
+<div class="mt-5 pt-3">
+   <button class="button is-danger is-small mb-2" onclick="clearHistoryOnly()">履歴を消去</button><br>
+ 
+  <button class="button is-warning is-small" onclick="resetStorage()">初期化</button>
 </div>
-
-<script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const items = ["1駅", "2駅", "3駅", "4駅", "5駅", "6駅"];
-    const colors = ['#FFADAD', '#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#A0C4FF'];
-    let currentRotation = 0;
-    let isSpinning = false;
-
-    function draw() {
-        const num = items.length;
-        const arc = (Math.PI * 2) / num;
-        ctx.clearRect(0, 0, 320, 320);
-
-        items.forEach((text, i) => {
-            const angle = currentRotation + i * arc;
-            ctx.beginPath();
-            ctx.fillStyle = colors[i];
-            ctx.moveTo(160, 160);
-            ctx.arc(160, 160, 155, angle, angle + arc);
-            ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.5)";
-            ctx.stroke();
-
-            ctx.save();
-            ctx.translate(160, 160);
-            ctx.rotate(angle + arc / 2);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "#333";
-            ctx.font = "bold 22px sans-serif";
-            ctx.fillText(text, 140, 10);
-            ctx.restore();
-        });
-    }
-
-    function spin() {
-        if (isSpinning) return;
-        isSpinning = true;
-        
-        const spinDuration = 4000; // 4秒間回転
-        const start = performance.now();
-        const totalRotation = Math.random() * (Math.PI * 2 * 5) + (Math.PI * 2 * 5); // 最低5回転
-
-        function animate(time) {
-            const elapsed = time - start;
-            const progress = Math.min(elapsed / spinDuration, 1);
-            
-            // イージング（徐々に減速）
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            const rotationStep = totalRotation * easeOut;
-            
-            // 現在の回転角を更新
-            currentRotation += (totalRotation / 100) * (1 - easeOut); 
-            draw();
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                isSpinning = false;
-            }
-        }
-        requestAnimationFrame(animate);
-    }
-
-    draw();
-</script>
-</body>
-</html>
-        <button class="btn-spin" onclick="spin()">START</button>
-    </div>
+<hr>
+     <div>
+        <p>
+  <button class="button is-link is-light" onclick="autoFill()" style="font-size:11px;margin-bottom:0.5em;">
+    パーティ系自動入力
+  </button>
+  <button class="button is-link is-light" onclick="autoFillTalk()" style="font-size:11px;margin-bottom:0.5em;">
+    トーク系自動入力
+  </button>
+  <button class="button is-link is-light" onclick="autoFillNumbers()" style="font-size:11px;margin-bottom:1em;">
+    数字系自動入力
+  </button>
+</p>
+ 
+    <h2>SPECIAL THNKS</h2>
+        <ul>
+          <li>SE：<a href="https://soundeffect-lab.info/" target="_blank">効果音ラボ</a></li>
+          <li>BGM：<a href="https://www.springin.org/sound-stock/" target="_blank">Springin’ Sound Stock</a></li>
+        </ul>
+     </div>
+     </div>
 </div>
-
-<script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const colors = ['#3498db', '#2ecc71', '#f1c40f', '#e67e22', '#e74c3c', '#9b59b6'];
-    let count = 6;
-    let currentRotation = 0;
+ 
+  <div class="roulette-container" id="roulette-container">
+    <div class="pointer"></div>
+    <svg class="svg" id="roulette-svg" viewBox="0 0 400 400"></svg>
+    <button class="center-button" id="toggle-button" onclick="toggleRotation()">スタート</button>
+  </div>
+  <div class="result-overlay" id="result-overlay" onclick="hideResult()">
+    <div class="result-board" id="result-board"></div>
+  </div>
+   
+   <script>
+  let bgmAudio = new Audio('se/bgm.mp3');
+  bgmAudio.loop = true;
+ 
+  function toggleBGM() {
+    const checked = document.getElementById('bgm-toggle').checked;
+    if (checked) {
+      bgmAudio.play().catch(e => console.warn('BGM play error:', e));
+    } else {
+      bgmAudio.pause();
+      bgmAudio.currentTime = 0;
+    }
+  }
+ 
+  let seEnabled = false;
+  function toggleSE() {
+    seEnabled = document.getElementById('se-toggle').checked;
+  }
+ 
+let seAudios = [];
+let rollAudio = new Audio('https://rimrt.com/roulette/se/roll.mp3');
+ 
+ 
+function initializeSE() {
+  if (seAudios.length > 0) return;
+  seAudios = [
+    new Audio('https://rimrt.com/roulette/se/01.mp3'),
+    new Audio('https://rimrt.com/roulette/se/02.mp3'),
+    new Audio('https://rimrt.com/roulette/se/03.mp3'),
+    new Audio('https://rimrt.com/roulette/se/04.mp3'),
+    new Audio('https://rimrt.com/roulette/se/05.mp3')
+  ];
+   rollAudio = new Audio('https://rimrt.com/roulette/se/roll.mp3');
+}
+function autoFill() {
+  segments = [
+    { label: '物ボケ', color: '#FFB6C1' },
+    { label: 'ものまね', color: '#B0E0E6' },
+    { label: '1分空気椅子', color: '#FFDAB9' },
+    { label: '変顔', color: '#E6E6FA' },
+    { label: 'お嬢様風でトーク', color: '#C1E1C1' },
+    { label: '好きな食べ物3選', color: '#FFFACD' },
+    { label: '最近ちょっと嬉しかったこと', color: '#FADADD' },
+    { label: '食レポ', color: '#D1EEEE' }
+  ];
+  localStorage.setItem('segments', JSON.stringify(segments));
+  drawWheel();
+  openInputPanel(true);
+}
+      
+ 
+function autoFillNumbers() {
+  segments = [
+    { label: '1', color: '#FFB6C1' },
+    { label: '2', color: '#B0E0E6' },
+    { label: '3', color: '#FFDAB9' },
+    { label: '4', color: '#E6E6FA' },
+    { label: '5', color: '#C1E1C1' },
+    { label: '6', color: '#FFFACD' }
+  ];
+  localStorage.setItem('segments', JSON.stringify(segments));
+  drawWheel();
+  openInputPanel(true);
+}
+ 
+function autoFillTalk() {
+  segments = [
+{ label: '最近ハマってること', color: '#F0E68C' },
+{ label: '今年中にやりたいこと', color: '#D8BFD8' },
+{ label: '小さな自慢話', color: '#E0FFFF' },
+{ label: '無言で感情表現', color: '#FFE4E1' },
+{ label: 'お王子様風トーク', color: '#AFEEEE' },
+{ label: '静止10秒', color: '#FFF5EE' },
+{ label: '絵文字だけで会話', color: '#E6E6FA' },
+{ label: '使っている洗顔料の話', color: '#FFEFD5' }
+  ];
+  localStorage.setItem('segments', JSON.stringify(segments));
+  drawWheel();
+  openInputPanel(true);
+}
+      
+ 
+function playSE() {
+  if (!seEnabled) return; // ←ON/OFF切り替えがある場合
+  const index = Math.floor(Math.random() * seAudios.length);
+  const audio = seAudios[index];
+  audio.currentTime = 0;
+  audio.play().catch(e => console.warn('Audio play error:', e));
+}
+ 
+</script>
+ 
+ 
+  <script>
+    let segments = JSON.parse(localStorage.getItem('segments')) || [
+      { label: '1駅進む', color: '#FFB6C1' },
+      { label: '2駅進む', color: '#B0E0E6' },
+      { label: '3駅進む', color: '#FFDAB9' },
+      { label: '4駅進む', color: '#E6E6FA' },
+      { label: '5駅進む', color: '#C1E1C1' },
+      { label: '6駅進む', color: '#FFFACD' },
+      { label: '1駅進む', color: '#FADADD' },
+      { label: '1本見逃す', color: '#D1EEEE' }
+    ];
+    let history = JSON.parse(localStorage.getItem('history')) || [];
+    const svg = document.getElementById('roulette-svg');
+    const centerX = 200;
+    const centerY = 200;
+    const radius = 190;
+    let angle = 0;
+    let speed = 0;
     let isSpinning = false;
-
-    function updateCount(n) {
-        if (isSpinning) return;
-        count = n;
-        document.querySelectorAll('.btn-count').forEach((btn, i) => {
-            btn.classList.toggle('active', i === n - 1);
-        });
-        draw();
-    }
-
-    function draw() {
-        const arc = (Math.PI * 2) / count;
-        ctx.clearRect(0, 0, 300, 300);
+     
+     let autoStopTimer = null;   // 自動ストップ用タイマー
+     let isStopping = false;     // 減速中（停止処理中）フラグ
+     
+    let animationFrame;
+    const toggleButton = document.getElementById('toggle-button');
+    const resultOverlay = document.getElementById('result-overlay');
+    const resultBoard = document.getElementById('result-board');
+    function drawWheel() {
+      svg.innerHTML = '';
+      const anglePerSegment = 360 / segments.length;
+      segments.forEach((seg, i) => {
+        const startAngle = anglePerSegment * i;
+        const endAngle = startAngle + anglePerSegment;
+        const largeArc = anglePerSegment > 180 ? 1 : 0;
+        const x1 = centerX + radius * Math.cos(Math.PI * startAngle / 180);
+        const y1 = centerY + radius * Math.sin(Math.PI * startAngle / 180);
+        const x2 = centerX + radius * Math.cos(Math.PI * endAngle / 180);
+        const y2 = centerY + radius * Math.sin(Math.PI * endAngle / 180);
+        const pathData = `M ${centerX},${centerY} L ${x1},${y1} A ${radius},${radius} 0 ${largeArc},1 ${x2},${y2} Z`;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', seg.color);
+        const textAngle = (startAngle + endAngle) / 2;  
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+         
+const labelLength = seg.label.length;
+let textOffsetX = 0;
+let textOffsetY = 0;
+ 
+ const labelRadius = radius * 0.6; 
+const textX = centerX + labelRadius * Math.cos(Math.PI * textAngle / 180) + textOffsetX;
+const textY = centerY + labelRadius * Math.sin(Math.PI * textAngle / 180) - textOffsetY;
         
-        for (let i = 0; i < count; i++) {
-            const angle = currentRotation + i * arc;
-            ctx.beginPath();
-            ctx.fillStyle = colors[i % colors.length];
-            ctx.moveTo(150, 150);
-            ctx.arc(150, 150, 145, angle, angle + arc);
-            ctx.fill();
-            ctx.stroke();
-            ctx.strokeStyle = "#fff";
-
-            ctx.save();
-            ctx.translate(150, 150);
-            ctx.rotate(angle + arc / 2);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 20px sans-serif";
-            ctx.fillText(`${i + 1}駅`, 130, 8);
-            ctx.restore();
-        }
-        // 矢印（針）を描画
-        ctx.fillStyle = "#333";
-        ctx.beginPath();
-        ctx.moveTo(280, 150);
-        ctx.lineTo(300, 140);
-        ctx.lineTo(300, 160);
-        ctx.fill();
+         
+         
+ 
+         let displayLabel = seg.label;
+if (segments.length >= 9 && displayLabel.length > 4) {
+  displayLabel = displayLabel.slice(0, 4) + '…';
+}
+ 
+const lines = displayLabel.length > 8
+  ? [displayLabel.slice(0, 7), displayLabel.slice(7)]
+  : [displayLabel];
+ 
+lines.forEach((line, idx) => {
+  const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+  tspan.setAttribute('x', textX);
+  tspan.setAttribute('dy', idx === 0 ? '0' : '1em');
+  tspan.textContent = line;
+  text.appendChild(tspan);
+});
+         
+        text.setAttribute('x', textX);
+        text.setAttribute('y', textY);
+        text.setAttribute('text-anchor', 'middle');
+         text.setAttribute('font-family', 'Arial, sans-serif');
+         text.setAttribute('font-weight', 'bold');       
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('transform', `rotate(${textAngle}, ${textX}, ${textY})`);
+ 
+ 
+        svg.appendChild(path);
+        svg.appendChild(text);
+      });
     }
-
-    function spin() {
-        if (isSpinning) return;
-        isSpinning = true;
-        const spinAngle = Math.random() * 20 + 30; // 回転の勢い
-        let velocity = spinAngle;
-        
-        function animate() {
-            velocity *= 0.98; // 摩擦で減速
-            currentRotation += velocity * 0.1;
-            draw();
-
-            if (velocity > 0.1) {
-                requestAnimationFrame(animate);
-            } else {
-                isSpinning = false;
-            }
-        }
-        animate();
+    function rotateWheel() {
+      angle += speed;
+      svg.style.transform = `rotate(${angle}deg)`;
+       
+       
+if (!isSpinning && speed > 0.01) {
+  // 減速中
+  speed *= 0.98;
+} else if (!isSpinning) {
+  // 完全停止
+  cancelAnimationFrame(animationFrame);
+ 
+  // 自動停止タイマー掃除
+  if (autoStopTimer) {
+    clearTimeout(autoStopTimer);
+    autoStopTimer = null;
+  }
+ 
+  // 減速完了 → 二度押し解禁
+  isStopping = false;
+  toggleButton.disabled = false;
+  toggleButton.textContent = 'スタート';
+ 
+  showResult();
+  return;
+}
+ 
+      animationFrame = requestAnimationFrame(rotateWheel);
     }
-
-    draw();
-</script>
-</body>
-</html>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const colors = ['#FFADAD', '#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#A0C4FF'];
-    let currentRotation = 0;
-
-    function draw() {
-        const items = Array.from(document.querySelectorAll('.item')).map(i => i.value).filter(v => v !== "");
-        const num = items.length;
-        const arc = (Math.PI * 2) / num;
-
-        ctx.clearRect(0, 0, 300, 300);
-        items.forEach((text, i) => {
-            const angle = currentRotation + i * arc;
-            ctx.beginPath();
-            ctx.fillStyle = colors[i % colors.length];
-            ctx.moveTo(150, 150);
-            ctx.arc(150, 150, 140, angle, angle + arc);
-            ctx.fill();
-            
-            // テキスト描画
-            ctx.save();
-            ctx.translate(150, 150);
-            ctx.rotate(angle + arc / 2);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "#333";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText(text, 130, 10);
-            ctx.restore();
-        });
+     
+ 
+     function scheduleAutoStop() {
+  // 自動停止までのランダム時間（1.5〜5秒）
+  const minMs = 6000;
+  const maxMs = 8000;
+  const ms = Math.floor(Math.random() * (maxMs - minMs) + minMs);
+ 
+  // 既存タイマーがあればクリア
+  if (autoStopTimer) {
+    clearTimeout(autoStopTimer);
+    autoStopTimer = null;
+  }
+ 
+  autoStopTimer = setTimeout(() => {
+    requestStop(); // 自動で停止要求
+  }, ms);
+}
+ 
+// 「停止して！」の要求（手動・自動どちらからも呼べる）
+function requestStop() {
+  if (!isSpinning || isStopping) return; // 既に止め中なら無視
+  isStopping = true;
+ 
+  // 減速開始：ボタンは無効化して二度押しを防止
+  toggleButton.disabled = true;
+  toggleButton.textContent = '停止中';
+ 
+  // 停止処理は rotateWheel 内の減速ロジックに任せる
+  isSpinning = false;
+}
+ 
+     
+     
+     
+function toggleRotation() {
+  initializeSE();
+ 
+  // 減速中は二度押し禁止
+  if (isStopping) return;
+ 
+  if (!isSpinning) {
+    // スタート（回転開始）
+    if (seEnabled && rollAudio) {
+      rollAudio.currentTime = 0;
+      rollAudio.play().catch(e => console.warn('Roll sound error:', e));
     }
-
-    function spin() {
-        const extraSpin = Math.random() * 2000 + 2000; // 3〜5回転くらい
-        const start = performance.now();
-        const duration = 3000; // 3秒間
-
-        function animate(time) {
-            const progress = Math.min((time - start) / duration, 1);
-            const easeOut = 1 - Math.pow(1 - progress, 3); // 滑らかに止まる
-            currentRotation += (extraSpin / 100) * (1 - easeOut);
-            draw();
-            if (progress < 1) requestAnimationFrame(animate);
-        }
-        requestAnimationFrame(animate);
+ 
+    // 念のため古いタイマーを掃除
+    if (autoStopTimer) {
+      clearTimeout(autoStopTimer);
+      autoStopTimer = null;
     }
-
-    // 入力変更時に再描画
-    document.getElementById('inputContainer').addEventListener('input', draw);
-    draw();
-</script>
+ 
+    isSpinning = true;
+    speed = 10;
+    toggleButton.disabled = false;      // 回っている間は押せる（=押したら手動停止）
+    toggleButton.textContent = 'ストップ';
+    rotateWheel();
+ 
+    // ランダムで自動停止
+    scheduleAutoStop();
+  } else {
+    // すでに回転中 → 手動で停止要求
+    requestStop();
+  }
+}
+ 
+ 
+function showResult() {
+  const anglePerSegment = 360 / segments.length;
+  const normalizedAngle = (360 - (angle % 360) - 90 + 360) % 360;
+  const segmentIndex = Math.floor(normalizedAngle / anglePerSegment) % segments.length;
+  const selected = segments[segmentIndex];
+ 
+  resultBoard.textContent = selected.label;
+  resultBoard.style.background = selected.color;
+  resultOverlay.classList.add('show');
+  resultOverlay.style.display = 'flex';
+ 
+  playSE();
+ 
+  history.unshift(`${new Date().toLocaleString()} - ${selected.label}`);
+  localStorage.setItem('history', JSON.stringify(history));
+ 
+  const consumeOnce = document.getElementById('consume-once-toggle').checked;
+  if (consumeOnce) {
+    segments.splice(segmentIndex, 1);
+    localStorage.setItem('segments', JSON.stringify(segments));
+    drawWheel();
+ 
+    if (segments.length === 0) {
+  toggleButton.disabled = true;
+  toggleButton.textContent = '終了';
+    }
+  }
+}
+ 
+ 
+    function hideResult() {
+      resultOverlay.classList.remove('show');
+      setTimeout(() => resultOverlay.style.display = 'none', 300);
+    }
+    function toggleSettings() {
+      document.getElementById('settings-panel').classList.toggle('show');
+    }
+function openInputPanel(forceOpen = false) {
+  const inputArea = document.getElementById('input-area');
+  const controls = document.querySelector('.input-controls');
+ 
+  if (!forceOpen && inputArea.style.display === 'block') {
+    inputArea.style.display = 'none';
+    if (controls) controls.style.display = 'none';
+    return;
+  }
+ 
+  inputArea.style.display = 'block';
+  if (controls) controls.style.display = 'flex';
+  inputArea.innerHTML = '';
+  segments.forEach((seg, i) => {
+    const div = document.createElement('div');
+    div.className = 'input-field';
+    const colorBox = document.createElement('div');
+    colorBox.className = 'color-box';
+    colorBox.style.background = seg.color;
+    const input = document.createElement('input');
+    input.maxLength = 20;
+    input.value = seg.label;
+    input.dataset.index = i;
+    div.appendChild(colorBox);
+    div.appendChild(input);
+ 
+     const removeBtn = document.createElement('button');
+removeBtn.className = 'button is-small is-light has-text-grey';
+removeBtn.textContent = '✖';
+removeBtn.onclick = () => {
+  segments.splice(i, 1);
+  openInputPanel(true);
+};
+div.appendChild(removeBtn);
+     
+    inputArea.appendChild(div);
+  });
+}
+ 
+ 
+    function addInputField() {
+      if (segments.length >= 50) return;
+      segments.push({ label: `項目${segments.length + 1}`, color: getRandomPastel() });
+      openInputPanel(true);
+    }
+  function removeInputField() {
+  if (segments.length <= 1) return;
+  segments.pop();
+  openInputPanel(true);
+}
+ 
+    function saveInput() {
+      const inputs = document.querySelectorAll('#input-area input');
+      inputs.forEach(input => {
+        const index = parseInt(input.dataset.index);
+        segments[index].label = input.value;
+      });
+      localStorage.setItem('segments', JSON.stringify(segments));
+      drawWheel();
+       
+         if (segments.length > 0) {
+    toggleButton.disabled = false;
+    toggleButton.textContent = 'スタート';
+  }
+         const inputArea = document.getElementById('input-area');
+  const controls = document.querySelector('.input-controls');
+  if (inputArea) inputArea.style.display = 'none';
+  if (controls) controls.style.display = 'none';
+    }
+function showHistory() {
+  const historyArea = document.getElementById('history-area');
+ 
+  if (historyArea.style.display === 'block' || historyArea.style.display === '') {
+    historyArea.style.display = 'none';
+  } else {
+    historyArea.textContent = history.join('\n');
+    historyArea.style.display = 'block';
+  }
+}
+ 
+     function clearHistoryOnly() {
+  history = [];
+  localStorage.setItem('history', JSON.stringify(history));
+  const historyArea = document.getElementById('history-area');
+  historyArea.textContent = '';
+}
+ 
+ 
+    function resetStorage() {
+      localStorage.clear();
+      history = [];
+      segments = [];
+      location.reload();
+    }
+    function getRandomPastel() {
+      const r = Math.floor((Math.random() * 128) + 127);
+      const g = Math.floor((Math.random() * 128) + 127);
+      const b = Math.floor((Math.random() * 128) + 127);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+    drawWheel();
+  </script>
 </body>
 </html>
