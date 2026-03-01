@@ -2,39 +2,116 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>駅ルーレット</title>
+<title>3D駅サイコロ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-html, body {
+body {
   margin: 0;
-  padding: 0;
   height: 100vh;
-  overflow: hidden;
-  background: #f0f0f0;
+  background: #f2f2f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   font-family: sans-serif;
+  overflow: hidden;
+}
+
+.scene {
+  width: 60vw;
+  max-width: 220px;
+  aspect-ratio: 1;
+  perspective: 1000px;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1.2s cubic-bezier(.2,.8,.2,1);
+}
+
+.face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: 20px;
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.15);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 5vw;
+  font-weight: bold;
+  text-align: center;
+  padding: 15px;
 }
 
-.roulette-container {
-  position: relative;
-  width: 600px;
-  height: 600px;
-  min-width: 370px;
-  min-height: 370px;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
-}
+/* 各面の配置 */
+.front  { transform: rotateY(0deg) translateZ(110px); }
+.back   { transform: rotateY(180deg) translateZ(110px); }
+.right  { transform: rotateY(90deg) translateZ(110px); }
+.left   { transform: rotateY(-90deg) translateZ(110px); }
+.top    { transform: rotateX(90deg) translateZ(110px); }
+.bottom { transform: rotateX(-90deg) translateZ(110px); }
 
-svg {
-  width: 100%;
-  height: 100%;
+button {
+  margin-top: 40px;
+  width: 60vw;
+  max-width: 220px;
+  padding: 15px;
+  font-size: 18px;
+  border: none;
+  border-radius: 30px;
+  background: #4CAF50;
+  color: white;
 }
+</style>
+</head>
 
-.center-button {
+<body>
+
+<div class="scene">
+  <div class="cube" id="cube">
+    <div class="face front">1駅進む</div>
+    <div class="face back">1駅進む</div>
+    <div class="face right">2駅進む</div>
+    <div class="face left">3駅進む</div>
+    <div class="face top">4駅進む</div>
+    <div class="face bottom">1本見逃す</div>
+  </div>
+</div>
+
+<button onclick="rollDice()">サイコロを振る</button>
+
+<script>
+const cube = document.getElementById("cube");
+
+const rotations = [
+  "rotateX(0deg) rotateY(0deg)",       // front
+  "rotateX(0deg) rotateY(180deg)",     // back
+  "rotateX(0deg) rotateY(-90deg)",     // right
+  "rotateX(0deg) rotateY(90deg)",      // left
+  "rotateX(-90deg) rotateY(0deg)",     // top
+  "rotateX(90deg) rotateY(0deg)"       // bottom
+];
+
+function rollDice() {
+  const random = Math.floor(Math.random() * 6);
+
+  const extraSpinX = 360 * (2 + Math.floor(Math.random()*2));
+  const extraSpinY = 360 * (2 + Math.floor(Math.random()*2));
+
+  cube.style.transform =
+    `rotateX(${extraSpinX}deg) rotateY(${extraSpinY}deg) ` +
+    rotations[random];
+}
+</script>
+
+</body>
+</html>.center-button {
   position: absolute;
   top: 50%;
   left: 50%;
